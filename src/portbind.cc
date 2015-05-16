@@ -1,13 +1,20 @@
 /* portbind.c: Tim Hollebeek, Oct 28, 1996 */
+#include "base/std.h"
 
-#include "std.h"
-#include "network_incl.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
-#define HANDLE_ERROR(routine, call) if ((call) == -1) { perror(#routine); exit(-1); }
+#define HANDLE_ERROR(routine, call) \
+  if ((call) == -1) {               \
+    perror(#routine);               \
+    exit(-1);                       \
+  }
 
-int main(int argc, char **argv)
-{
-#ifndef WIN32
+int main(int argc, char **argv) {
   int port = -1;
   char *ipaddress = 0;
   const char *driver_name = "./driver";
@@ -31,8 +38,7 @@ int main(int argc, char **argv)
   while (argc > 1) {
     if (strcmp(argv[1], "-p") == 0) {
       if (argc == 2 || sscanf(argv[2], "%d", &port) != 1) {
-        fprintf(stderr, "%s: -p must be followed by a port number.\n",
-                argv[0]);
+        fprintf(stderr, "%s: -p must be followed by a port number.\n", argv[0]);
         exit(-1);
       }
       argc -= 2;
@@ -67,7 +73,9 @@ int main(int argc, char **argv)
       ipaddress = argv[2];
       argc -= 2;
       argv += 2;
-    } else { break; }
+    } else {
+      break;
+    }
   }
 
   if (port == -1) {
@@ -85,12 +93,13 @@ int main(int argc, char **argv)
   HANDLE_ERROR(close, close(fd));
 
   /* set local address reuse */
-  HANDLE_ERROR(setsockopt, setsockopt(6, SOL_SOCKET, SO_REUSEADDR, (char *)&optval, sizeof(optval)));
+  HANDLE_ERROR(setsockopt,
+               setsockopt(6, SOL_SOCKET, SO_REUSEADDR, (char *)&optval, sizeof(optval)));
 
   /* setup our address */
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = (ipaddress ? inet_addr(ipaddress) : INADDR_ANY);
-  sin.sin_port = htons((unsigned short)port);
+  sin.sin_port = htons(static_cast<unsigned short>(port));
 
   /* bind to our address */
   HANDLE_ERROR(bind, bind(6, (struct sockaddr *)&sin, sizeof(sin)));
@@ -104,9 +113,8 @@ int main(int argc, char **argv)
     HANDLE_ERROR(setuid, setuid(uid));
   }
 
-  argv[0] = (char *)driver_name;
+  argv[0] = const_cast<char *>(driver_name);
   /* exec the driver */
   HANDLE_ERROR(execv, execv(driver_name, argv));
-#endif
   return 0;
 }
