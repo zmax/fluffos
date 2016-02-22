@@ -151,8 +151,12 @@ static const char *get_opt(unsigned char opt) {
 	}
 }
 
+int print_raw_buffer = 0;
+
 static void print_buffer(const char *buffer, size_t size) {
 	printf("%.*s", (int)size, buffer);
+
+	if(print_raw_buffer) return;
 
 	size_t i;
 	printf(" [");
@@ -346,10 +350,14 @@ int main(int argc, char **argv) {
 #endif
 
 	/* check usage */
-	if (argc != 4) {
+	if (argc < 4) {
 		fprintf(stderr, "Usage:\n ./telnet-proxy <remote ip> <remote port> "
-				"<local port>\n");
+				"<local port> raw\n");
 		return 1;
+	}
+
+	if (argc > 4) {
+		if(strcmp(argv[4], "raw") == 0) print_raw_buffer = 1;
 	}
 
 	/* parse listening port */

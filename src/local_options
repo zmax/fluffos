@@ -30,7 +30,7 @@
 #define ED_INDENT_SPACES 4
 #undef RECEIVE_ED
 #define RESTRICTED_ED
-#define SENSIBLE_MODIFIERS
+#undef SENSIBLE_MODIFIERS
 
 /****************************************************************************
  *                           MISCELLANEOUS                                  *
