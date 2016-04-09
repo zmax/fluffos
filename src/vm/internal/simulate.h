@@ -23,6 +23,9 @@ extern object_t *obj_list_dangling;
 void debug_fatal(char *, ...);
 void fatal(const char *, ...);
 void check_legal_string(const char *);
+#ifndef NO_LIGHT
+void add_light(object_t *, int);
+#endif
 void free_sentence(sentence_t *);
 
 sentence_t *alloc_sentence(void);
@@ -60,5 +63,8 @@ void slow_shut_down(int);
 #ifdef DEBUGMALLOC_EXTENSIONS
 void mark_free_sentences(void);
 #endif
+
+void tell_npc(object_t *, const char *);
+void tell_object(object_t *, const char *, int);
 
 #endif

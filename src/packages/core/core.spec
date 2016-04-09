@@ -337,6 +337,11 @@ void dumpallobj(string | void);
 string dump_file_descriptors();
 string query_load_average();
 
+#ifndef NO_LIGHT
+/* set_light should die a dark death */
+int set_light(int);
+#endif
+
 string origin();
 
 /* the infrequently used functions */
@@ -351,11 +356,9 @@ int max_eval_cost set_eval_limit(int default: 1);
 int get_eval_cost set_eval_limit(int default: -1);
 #endif
 
-#ifdef DEBUG_MACRO
 void set_debug_level(int | string);
 mapping debug_levels();
 void clear_debug_level(string);
-#endif
 
 #ifdef PROFILE_FUNCTIONS
 mapping *function_profile(object default:F__THIS_OBJECT);

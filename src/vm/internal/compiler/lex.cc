@@ -2793,10 +2793,8 @@ void add_predefines() {
   add_quoted_predefine("__CXXFLAGS__", CXXFLAGS);
   add_quoted_predefine("__OPTIMIZATION__", OPTIMIZE);
 
-/* Backwards Compat */
-#ifndef CDLIB
+  /* Backwards Compat */
   add_quoted_predefine("MUD_NAME", CONFIG_STR(__MUD_NAME__));
-#endif
 #ifdef F_ED
   add_predefine("HAS_ED", -1, "");
 #endif
@@ -2847,6 +2845,7 @@ void add_predefines() {
   add_predefine("__CALLOUT_HANDLES__", -1, "");
   add_predefine("__ARGUMENTS_IN_TRACEBACK__", -1, "");
   add_predefine("__LOCALS_IN_TRACEBACK__", -1, "");
+  add_predefine("__DEBUG_MACRO__", -1, "");
 
   // Following compile time configs has been changed into runtime configs.
   if (CONFIG_INT(__RC_SANE_EXPLODE_STRING__)) {

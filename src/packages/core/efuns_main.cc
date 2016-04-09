@@ -33,6 +33,7 @@
 #include "packages/core/outbuf.h"
 #include "packages/core/reclaim.h"
 #include "packages/core/custom_crypt.h"
+#include "packages/core/ed.h"
 
 int data_size(object_t *ob);
 void reload_object(object_t *obj);
@@ -159,19 +160,14 @@ void f_bind(void) {
 
 #ifdef F_CACHE_STATS
 static void print_cache_stats(outbuffer_t *ob) {
-  outbuf_add(ob, "Function cache information\n");
+  outbuf_add(ob, "Apply lookup cache information\n");
   outbuf_add(ob, "-------------------------------\n");
   outbuf_addv(ob, "%% cache hits:    %10.2f\n",
-              100 * (static_cast<LPC_FLOAT>(apply_low_cache_hits) / apply_low_call_others));
-  outbuf_addv(ob, "call_others:     %10lu\n", apply_low_call_others);
-  outbuf_addv(ob, "cache hits:      %10lu\n", apply_low_cache_hits);
-  outbuf_addv(ob, "cache size:      %10lu\n", apply_cache_size);
-  outbuf_addv(ob, "slots used:      %10lu\n", apply_low_slots_used);
-  outbuf_addv(ob, "%% slots used:    %10.2f\n",
-              100 * (static_cast<LPC_FLOAT>(apply_low_slots_used) / apply_cache_size));
-  outbuf_addv(ob, "collisions:      %10lu\n", apply_low_collisions);
-  outbuf_addv(ob, "%% collisions:    %10.2f\n",
-              100 * (static_cast<LPC_FLOAT>(apply_low_collisions) / apply_low_call_others));
+              100 * (static_cast<LPC_FLOAT>(apply_cache_hits) / apply_cache_lookups));
+  outbuf_addv(ob, "total lookup:     %10lu\n", apply_cache_lookups);
+  outbuf_addv(ob, "cache hits:      %10lu\n", apply_cache_hits);
+  outbuf_addv(ob, "cache size (bytes w/o overhead):  %10lu\n",
+              apply_cache_items * sizeof(lookup_entry_s));
 }
 
 void f_cache_stats(void) {
@@ -249,8 +245,8 @@ void f__call_other(void) {
 static const char *origin_name(int orig) {
   /* FIXME: this should use ffs() if available (BSD) */
   int i = 0;
-  static const char *origins[] = {"driver", "local", "call_other", "simul", "internal", "efun",
-                                  "function pointer", "functional"};
+  static const char *origins[] = {"driver",   "local", "call_other",       "simul",
+                                  "internal", "efun",  "function pointer", "functional"};
   while (orig >>= 1) {
     i++;
   }
@@ -741,21 +737,6 @@ void f_function_exists(void) {
   } else {
     *sp = const0;
   }
-}
-#endif
-
-#ifdef F_GENERATE_SOURCE
-void f_generate_source(void) {
-  int i;
-
-  if (st_num_arg == 2) {
-    i = generate_source(sp - 1, sp->u.string);
-    pop_stack();
-  } else {
-    i = generate_source(sp, 0);
-  }
-  free_svalue(sp, "f_generate_source");
-  put_number(i);
 }
 #endif
 
@@ -2255,33 +2236,6 @@ void f_resolve(void) {
 }
 #endif
 
-#ifdef F_RESTORE_OBJECT
-void f_restore_object(void) {
-  int flag;
-
-  flag = (st_num_arg > 1) ? (sp--)->u.number : 0;
-
-  flag = restore_object(current_object, sp->u.string, flag);
-
-  free_string_svalue(sp);
-  put_number(flag);
-}
-#endif
-
-#ifdef F_RESTORE_VARIABLE
-void f_restore_variable(void) {
-  svalue_t v;
-
-  unlink_string_svalue(sp);
-  v.type = T_NUMBER;
-
-  // unlinked string
-  restore_variable(&v, const_cast<char *>(sp->u.string));
-  FREE_MSTR(sp->u.string);
-  *sp = v;
-}
-#endif
-
 #ifdef F_RM
 void f_rm(void) {
   int i;
@@ -2304,58 +2258,6 @@ void f_rmdir(void) {
     free_string_svalue(sp);
     *sp = const1;
   }
-}
-#endif
-
-#ifdef F_SAVE_OBJECT
-void f_save_object(void) {
-  const auto max_string_length = CONFIG_INT(__MAX_STRING_LENGTH__);
-
-  int flag;
-  if (st_num_arg == 2) {
-    flag = (sp--)->u.number;
-    if (sp->type != T_STRING) {
-      error("first argument must be a string for save_object with 2 args");
-    }
-  } else {
-    flag = 0;
-  }
-
-  if (st_num_arg == 1 && sp->type == T_NUMBER) {
-    flag = sp->u.number;
-  }
-
-  if (st_num_arg && sp->type == T_STRING) {
-    flag = save_object(current_object, sp->u.string, flag);
-
-    free_string_svalue(sp);
-    put_number(flag);
-  } else {
-    pop_n_elems(st_num_arg);
-    char *saved = new_string(max_string_length, "save_object_str");
-    push_malloced_string(saved);
-    int left = max_string_length;
-    flag = save_object_str(current_object, flag, saved, left);
-    if (!flag) {
-      pop_stack();
-      push_undefined();
-    } else {
-      saved = new_string(strlen(sp->u.string), "save_object_str2");
-      strcpy(saved, sp->u.string);
-      pop_stack();
-      push_malloced_string(saved);
-    }
-  }
-}
-#endif
-
-#ifdef F_SAVE_VARIABLE
-void f_save_variable(void) {
-  char *p;
-
-  p = save_variable(sp);
-  pop_stack();
-  push_malloced_string(p);
 }
 #endif
 
@@ -2481,6 +2383,21 @@ void f_set_hide(void) {
     num_hidden--;
     current_object->flags &= ~O_HIDDEN;
   }
+}
+#endif
+
+#ifdef F_SET_LIGHT
+void f_set_light(void) {
+  object_t *o1;
+
+  add_light(current_object, sp->u.number);
+  o1 = current_object;
+#ifndef NO_ENVIRONMENT
+  while (o1->super) {
+    o1 = o1->super;
+  }
+#endif
+  sp->u.number = o1->total_light;
 }
 #endif
 
