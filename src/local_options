@@ -44,6 +44,7 @@
 #undef USE_ICONV
 #undef IPV6
 #undef DTRACE
+#define AUTO_TRUST_BACKBONE
 
 /****************************************************************************
  *                              PACKAGES                                    *
@@ -81,5 +82,17 @@
 #define PACKAGE_COMPRESS
 #define SAVE_GZ_EXTENSION ".o.gz"
 #undef PACKAGE_THREAD
+
+// Add by Starck Lin
+#define PACKAGE_ANSI
+#define PACKAGE_DATABASE
+// #define PACKAGE_CHINESE
+#define PACKAGE_MAPPINGBASE
+
+/* PACKAGE_LONELY: The other efun */
+#define PACKAGE_LONELY
+
+/* PACKAGE_ARITH_OPERATOR: Unlimit arithmetic operator efun */
+#define PACKAGE_ARITH_OPERATOR
 
 #endif /* _LOCAL_OPTIONS_H_ */
