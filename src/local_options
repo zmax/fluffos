@@ -38,6 +38,10 @@
 #define CUSTOM_CRYPT
 #undef COMPAT_32
 #define DEFAULT_PRAGMAS PRAGMA_WARNINGS + PRAGMA_SAVE_TYPES + PRAGMA_ERROR_CONTEXT + PRAGMA_OPTIMIZE
+
+// 不出現 Warning 訊息
+// #define DEFAULT_PRAGMAS 0
+
 #define SAVE_EXTENSION ".o"
 #undef PRIVS
 #undef NO_SHADOWS
@@ -83,7 +87,7 @@
 #define SAVE_GZ_EXTENSION ".o.gz"
 #undef PACKAGE_THREAD
 
-// Add by Starck Lin
+// ==== Add by Starck Lin ====
 #define PACKAGE_ANSI
 #define PACKAGE_DATABASE
 // #define PACKAGE_CHINESE
@@ -94,5 +98,6 @@
 
 /* PACKAGE_ARITH_OPERATOR: Unlimit arithmetic operator efun */
 #define PACKAGE_ARITH_OPERATOR
+// ==== End ====
 
 #endif /* _LOCAL_OPTIONS_H_ */
